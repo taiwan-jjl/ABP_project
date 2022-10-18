@@ -1,0 +1,5 @@
+Computing on a 128^3 domain with double numbers
+L2 discretization error with sparse matrix: 0.00258662
+Mat-vec of size 2097152: 0.0356879 seconds or 20.1538 GB/s 
+Conjugate gradient solve of size 2097152 in 234 iterations: 10.2419 seconds or  47.9142 MUPD/s/it
+Error conjugate gradient solve: 8.86865e-11

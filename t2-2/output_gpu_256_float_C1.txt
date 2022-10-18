@@ -1,0 +1,2 @@
+Computing on a 256^3 domain with float numbers
+The cuda call in ./sparse_matrix.hpp on line 155 resulted in the error 'out of memory'
