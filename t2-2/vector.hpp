@@ -124,18 +124,19 @@ __global__ void vector_update(const std::size_t N,
   }
 
 
+
+
 }
 
+
+
 template <typename Number>
-__global__ void cuprint(Number *des)
+__global__ void cuprint(Number *des, int size)
 {
-  for(int i=0; i<8;i++){
+  for(int i=0; i<size;i++){
     printf("cu-i=%i, %f\n", i, des[i]);
   }
 }
-
-
-
 
 
 template <unsigned int block_size, typename Number>
@@ -310,37 +311,31 @@ public:
       {
 #ifndef DISABLE_CUDA
         // TODO implement for GPU
-        cuprint<<<1,1>>>(data);
+        // cuprint<<<1,1>>>(data, local_size);
+        // cudaDeviceSynchronize();
 
         const unsigned int n_blocks = (local_size + block_size - 1) / block_size;
-        vector_update<<<n_blocks,block_size>>>(local_size,
-                                               my_scalar,
-                                               other_scalar,
-                                               other.data,
-                                               data);
+        vector_update<<<n_blocks , block_size>>>(local_size,
+                                                 my_scalar,
+                                                 other_scalar,
+                                                 other.data,
+                                                 data);
 
-        cudaDeviceSynchronize();
-        //cuprint<<<1,1>>>(data);
+        // cudaDeviceSynchronize();
+        // cuprint<<<1,1>>>(data, local_size);
+
 
 #endif
       }
     else
       {
 #pragma omp parallel for simd
-        for (std::size_t i = 0; i < local_size; ++i){
-          printf("cpu-i=%lu, %f\n", i, data[i]);
-          printf("local_size=%lu\n", local_size );
+        for (std::size_t i = 0; i < local_size; ++i)
+        {
+          // printf("cpu-i=%lu, %f\n", i, data[i]);
           data[i] = my_scalar * data[i] + other_scalar * other.data[i];
-          
+          //printf("cpu-i=%lu, %f\n", i, data[i]);
         }
-
-        
-        //printf("%lu\n", local_size);
-        // for (std::size_t i = 0; i < local_size; ++i)
-        // {
-        //   printf("i=%lu, %f\n", i, data[i]);
-        // }
-
       }
   }
 
@@ -420,13 +415,17 @@ public:
         // TODO implement copy from host to device for GPU
         AssertCuda(cudaMemcpy(other.data,
                               data,
-                              local_size * sizeof(Number),
+                              global_size * sizeof(Number),
                               cudaMemcpyHostToDevice));
-        
+        //cudaDeviceSynchronize();
         // for(int i=0; i<local_size;i++){
         //   printf("i=%i, %f\n", i, data[i]);
         // }
-        // cuprint<<<1,1>>>(other.data);
+        // cuprint<<<1,1>>>(other.data, local_size);
+        // cudaDeviceSynchronize();
+
+
+
 
         return other;
       }
@@ -445,13 +444,16 @@ public:
         // TODO implement copy from device to host for GPU
         AssertCuda(cudaMemcpy(other.data,
                               data,
-                              local_size * sizeof(Number),
+                              global_size * sizeof(Number),
                               cudaMemcpyDeviceToHost));
-
+        //cudaDeviceSynchronize();
         // for(int i=0; i<local_size;i++){
         //   printf("i=%i, %f\n", i, other.data[i]);
         // }
-        // cuprint<<<1,1>>>(data);
+        // cuprint<<<1,1>>>(data, local_size);
+        // cudaDeviceSynchronize();
+
+
 
 
         return other;

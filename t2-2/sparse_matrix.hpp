@@ -21,22 +21,30 @@ __global__ void compute_spmv(const std::size_t N,
                              const std::size_t *row_starts,
                              const unsigned int *column_indices,
                              const Number *values,
-                             const Number *x,
-                             Number *y)
+                             const Number *src,
+                             Number *dst)
 {
   // TODO implement for GPU
-  const int idx = row_starts[blockIdx.x] + threadIdx.x;
-  const int idx_end = row_starts[blockIdx.x+1];
-  Number sum = 0;
-  if(idx < idx_end){
-    sum += values[idx] * x[column_indices[idx]];
+  // const int idx = row_starts[blockIdx.x] + threadIdx.x;
+  // const int idx_end = row_starts[blockIdx.x+1];
+  // Number sum = 0;
+  // if(idx < idx_end){
+  //   sum += values[idx] * x[column_indices[idx]];
+  // }
+  // atomicAdd(&y[blockIdx.x], sum);
+
+  const int row = threadIdx.x + blockDim.x*blockIdx.x;
+  if(row<N){
+    Number sum = 0;
+    for (std::size_t idx = row_starts[row]; idx < row_starts[row + 1]; ++idx)
+    {
+      sum += values[idx] * src[column_indices[idx]];
+    }
+    dst[row] = sum;
   }
-  atomicAdd(&y[blockIdx.x], sum);
 
 
 }
-
-
 #endif
 
 
@@ -294,14 +302,15 @@ public:
       {
 #ifndef DISABLE_CUDA
         // TODO implement for GPU (with CRS and ELLPACK/SELL-C-sigma)
-        const std::size_t n_entries = row_starts[n_rows];
         const unsigned int n_blocks = (n_rows + block_size - 1) / block_size;
-        compute_spmv<<<n_rows,block_size>>>(n_rows, 
-                                            row_starts, 
-                                            column_indices, 
-                                            values, 
-                                            src.begin(), 
-                                            dst.begin());
+        compute_spmv<<<n_blocks, block_size>>>(n_rows,
+                                               row_starts,
+                                               column_indices,
+                                               values,
+                                               src.begin(),
+                                               dst.begin());
+
+
 
 
         AssertCuda(cudaPeekAtLastError());
@@ -317,7 +326,6 @@ public:
                  ++idx)
               sum += values[idx] * src(column_indices[idx]);
             dst(row) = sum;
-            //printf("%f\n", sum);
           }
       }
 
